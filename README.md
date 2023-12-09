@@ -1,5 +1,5 @@
 
-# Tutorial
+# Ordinals Launcher Tracker
 
 ## Image Hash Generator
 
