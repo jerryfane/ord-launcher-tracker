@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Hash Generator</title>
+    <link rel="stylesheet" href="/content/style.css">
+
+</head>
+<body>
+    <h1>Image Hash Generator</h1>
+    <form id="input-form">
+        <div class="form-input">
+            <label for="ipfs-address">IPFS Address: </label>
+            <input type="text" id="ipfs-address" required>
+        </div>
+        <div class="form-input">
+            <label for="supply">Supply: </label>
+            <input type="number" id="supply" min="1" required>
+        </div>
+        <div class="form-input">
+            <label for="format">File Format (e.g., png, jpg, webp): </label>
+            <input type="text" id="format" required placeholder="Enter file format">
+        </div>
+        <button type="submit">Load Images</button>
+        <button onclick="generateCSV()">Generate CSV</button>
+    </form>
+
+    
+
+    <div id="gallery" class="gallery"></div>
+
+    <script>
+        const BASE = ''
+        const imageHashes = [];
+
+        function loadScript(url, isModule = false) {
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                if (isModule) {
+                    script.type = 'module';
+                }
+                script.src = url;
+                script.onload = resolve;
+                script.onerror = reject;
+                document.head.appendChild(script);
+            });
+        }
+
+        async function loadAllScripts() {
+            await loadScript(`${BASE}/content/a4aff0779fb5fc679e80ea03e7dea58ef1e509d274b38bef8575af803db4251bi0`); // crypto-js  // a4aff0779fb5fc679e80ea03e7dea58ef1e509d274b38bef8575af803db4251bi0 // 66979aec90e592bc5be7fddcef23daeff982662b7225e7804c1b271f1b0d267ai0
+        }
+
+        if (document.readyState === 'complete') {
+            // console.log("Executing immediately because page is already loaded.");
+            loadAllScripts();
+        } else {
+            console.log("Waiting for page to load...");
+            window.addEventListener('load', loadAllScripts);
+        }
+
+        document.getElementById('input-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const ipfsAddress = document.getElementById('ipfs-address').value;
+            const supply = parseInt(document.getElementById('supply').value);
+            loadImages(ipfsAddress, supply);
+        });
+
+        async function loadImages(ipfsAddress, supply) {
+            const format = document.getElementById('format').value;
+            const gallery = document.getElementById('gallery');
+            gallery.innerHTML = '';
+
+            for (let i = 1; i <= supply; i++) {
+                loadImageWithRetry(ipfsAddress, i, format);
+            }
+        }
+
+        function loadImageWithRetry(ipfsAddress, id, format, retries = 3, delay = 2000) {
+            let container = document.createElement('div');
+            container.className = 'image-container';
+            let img = document.createElement('img');
+            img.style.imageRendering = 'pixelated';
+            img.crossOrigin = 'anonymous';
+            img.src = `https://ipfs.io/ipfs/${ipfsAddress}/${id}.${format}`;
+
+            let idSpan = document.createElement('span');
+            idSpan.textContent = `ID: ${id}`;
+            idSpan.className = 'image-id';
+
+            img.onerror = () => {
+                if (retries > 0) {
+                    console.log(`Retrying image ID: ${id}, remaining attempts: ${retries}`);
+                    setTimeout(() => {
+                        img.src = `https://ipfs.io/ipfs/${ipfsAddress}/${id}.webp?nocache=${Math.random()}`; // Change the URL to prevent caching
+                    }, delay);
+                    retries--;
+                } else {
+                    console.error(`Failed to load image ID: ${id} after multiple retries.`);
+                    idSpan.textContent += ' - Failed to load';
+                }
+            };
+
+            img.onload = () => {
+                // Optionally, handle successful load if needed
+                console.log(`Image ID: ${id} loaded successfully.`);
+            };
+
+            container.appendChild(img);
+            container.appendChild(idSpan);
+            document.getElementById('gallery').appendChild(container);
+        }
+
+        async function convertImageToBase64(imgElement) {
+            return new Promise((resolve, reject) => {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = imgElement.naturalWidth || imgElement.width;
+                canvas.height = imgElement.naturalHeight || imgElement.height;
+                try {
+                    ctx.drawImage(imgElement, 0, 0, canvas.width, canvas.height);
+                    resolve(canvas.toDataURL());
+                } catch (error) {
+                    reject(error); // Reject the promise if drawing the image fails
+                }
+            });
+        }
+
+        async function collectAllBase64Data() {
+            const images = document.querySelectorAll('#gallery img');
+            const base64DataArray = [];
+
+            for (const img of images) {
+                try {
+                    const base64Data = await convertImageToBase64(img);
+                    base64DataArray.push(base64Data);
+                } catch (error) {
+                    console.error('Error converting image to base64:', error);
+                }
+            }
+
+            // Sending the array of Base64 data
+            return base64DataArray
+        }
+
+        
+        async function computeHash(img) {
+            const response = await fetch(img.src);
+            const blob = await response.blob();
+            
+            const reader = new FileReader();
+            reader.readAsDataURL(blob); 
+            reader.onloadend = function() {
+                const base64data = reader.result.split(',')[1]; // Get the Base64 content, without the prefix
+                getSHA256Checksum(base64data).then(hash => {
+                    const imgId = img.src.split('/').pop();
+                    imageHashes.push({ id: imgId, hash: hash });
+                });
+            }
+        }
+
+
+        async function getSHA256Checksum(base64String) {
+            // Pad the string if necessary
+            base64String = base64String.padEnd(Math.ceil(base64String.length / 4) * 4, '=');
+
+            // Convert Base64 to Uint8Array
+            const raw = window.atob(base64String);
+            const rawLength = raw.length;
+            const array = new Uint8Array(new ArrayBuffer(rawLength));
+
+            for (let i = 0; i < rawLength; i++) {
+                array[i] = raw.charCodeAt(i);
+            }
+
+            // Compute the SHA256 hash
+            const hashBuffer = await crypto.subtle.digest('SHA-256', array);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+
+            // Convert the hash to a hexadecimal string
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+
+        async function generateCSV() {
+            let allBase64data = await collectAllBase64Data();
+
+            for (let i = 0; i < allBase64data.length; i++) {
+                const base64data = allBase64data[i].split(',')[1];
+                try {
+                    const hash = await getSHA256Checksum(base64data);
+                    // Assuming the image IDs are sequential and start from 1
+                    imageHashes.push({ id: (i + 1).toString(), hash: hash });
+                } catch (error) {
+                    console.error('Error computing hash for image', i + 1, ':', error);
+                }
+            }
+
+            // Sort imageHashes by image ID
+            imageHashes.sort((a, b) => parseInt(a.id) - parseInt(b.id));
+
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += "image_id,hash\n";
+
+            imageHashes.forEach(function(row) {
+                csvContent += row.id + "," + row.hash + "\n";
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "image_hashes.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+    </script>
+</body>
+</html>
