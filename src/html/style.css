@@ -1,0 +1,112 @@
+/* Root Variables */
+:root {
+    --bg-color: #202124;
+    --text-color: #e8eaed;
+    --link-color: #5c8aca;
+    --link-hover-color: #425775;
+    --primary-color: #191a1f;
+    --secondary-color: #22242e;
+    --border-radius: 8px;
+    --description-bg: #292a2d; 
+}
+
+/* Body and General Styling */
+body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+}
+
+a {
+    color: var(--link-color);
+}
+
+a:hover {
+    color: var(--link-hover-color);
+}
+
+/* Form Input Styling */
+.form-input {
+    margin-bottom: 10px;
+}
+
+.form-input label,
+.form-input input {
+    display: block;
+}
+
+.form-input input {
+    width: 40%;
+    padding: 8px;
+    margin-top: 5px;
+    border-radius: var(--border-radius);
+    border: none;
+    background-color: var(--secondary-color);
+    color: var(--text-color);
+}
+
+/* Button Styling */
+button {
+    background-color: var(--primary-color);
+    color: var(--text-color);
+    border: none;
+    padding: 10px 15px;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+button:hover {
+    background-color: var(--secondary-color);
+}
+
+/* Gallery Styling */
+.gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 10px;
+}
+
+.image-container {
+    position: relative;
+    text-align: center;
+}
+
+.image-container img {
+    width: 100%;
+    height: auto;
+    border-radius: var(--border-radius);
+}
+
+.image-id {
+    position: absolute;
+    width: 100%;
+    bottom: 0;
+    left: 0;
+    background: rgba(255, 255, 255, 0.5); 
+    color: var(--primary-color);
+    font-size: 12px;
+    padding: 2px 0;
+    border-bottom-left-radius: var(--border-radius);
+    border-bottom-right-radius: var(--border-radius);
+}
+
+.description {
+    background-color: var(--description-bg);
+    padding: 15px;
+    border-radius: var(--border-radius);
+    margin: 20px 0;
+    line-height: 1.5;
+    font-size: 17px;
+}
+
+.description a {
+    color: var(--link-color);
+    text-decoration: none;
+}
+
+.description a:hover {
+    color: var(--link-hover-color);
+    text-decoration: underline;
+}
